@@ -2080,40 +2080,45 @@ void NuPlayer::updateVideoSize(
     int32_t displayWidth = 0, displayHeight = 0;
     if (outputFormat != NULL) {
         int32_t width, height;
-        if (!outputFormat->findInt32("width", &width)
-                || !outputFormat->findInt32("height", &height)) {
+        int32_t cropLeft, cropTop, cropRight, cropBottom;
+
+        if (!outputFormat->findInt32("width", &width) ||
+            !outputFormat->findInt32("height", &height)) {
             ALOGW("Video output format missing dimension: %s",
-                    outputFormat->debugString().c_str());
+                  outputFormat->debugString().c_str());
             notifyListener(MEDIA_SET_VIDEO_SIZE, 0, 0);
             return;
         }
 
-        int32_t cropLeft, cropTop, cropRight, cropBottom;
-        if (outputFormat->findRect(
-                "crop",
-                &cropLeft, &cropTop, &cropRight, &cropBottom)) {
+        if (outputFormat->findRect("crop",
+                                   &cropLeft, &cropTop,
+                                   &cropRight, &cropBottom)) {
             displayWidth = cropRight - cropLeft + 1;
             displayHeight = cropBottom - cropTop + 1;
+
+            ALOGV("Video output format changed to %d x %d "
+                  "(crop: %d x %d @ (%d, %d))",
+                  width, height,
+                  displayWidth, displayHeight,
+                  cropLeft, cropTop);
         } else {
             displayWidth = width;
             displayHeight = height;
+            ALOGV("Video output format changed to %d x %d", displayWidth, displayHeight);
         }
 
-        ALOGV("Video output format changed to %d x %d "
-                "(crop: %d x %d @ (%d, %d))",
-                width, height,
-                displayWidth,
-                displayHeight,
-                cropLeft, cropTop);
     } else {
-        if (!inputFormat->findInt32("width", &displayWidth)
-            || !inputFormat->findInt32("height", &displayHeight)) {
+        if (!inputFormat->findInt32("width", &displayWidth) ||
+            !inputFormat->findInt32("height", &displayHeight)) {
             ALOGW("Either video width or video height missing, reporting 0x0!");
             notifyListener(MEDIA_SET_VIDEO_SIZE, 0, 0);
             return;
         }
         ALOGV("Video input format %d x %d", displayWidth, displayHeight);
     }
+
+    notifyListener(MEDIA_SET_VIDEO_SIZE, displayWidth, displayHeight);
+}
 
     // Take into account sample aspect ratio if necessary:
     int32_t sarWidth, sarHeight;
